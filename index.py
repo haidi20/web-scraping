@@ -2,7 +2,7 @@ import re
 import time
 import json
 from ast import Try
-import urllib.request
+import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -14,8 +14,9 @@ from selenium.webdriver.support import expected_conditions as EC
 class ScarpingPortalJob:
   html = ""
   profile = ''
-  linkPortalJob = "https://id.indeed.com"
   listJobs = []
+  CLEANR = re.compile('<.*?>') 
+  linkPortalJob = "https://id.indeed.com"
   driver = webdriver.Chrome('C:\chromedriver.exe')
   
   def __init__(self):  
@@ -23,14 +24,15 @@ class ScarpingPortalJob:
     time.sleep(3)
     
   # for bs4
-  def getLinks(url):
-    html_page = urllib.request.urlopen(url)
-    soup = BeautifulSoup(html_page, "html.parser")
-    links = []
-
-    for link in soup.findAll('a', attrs={'href': re.compile("^http://")}):
-        links.append(link.get('href'))
-    return links
+  def __getPage(self, url):
+    page = requests.get(url)
+    
+    if page.status_code == 200:
+      soup = BeautifulSoup(page.content, "html.parser")
+      
+      return soup
+    else:
+      return ""
     
   def typingWhat(self):
     this = self
@@ -47,8 +49,20 @@ class ScarpingPortalJob:
     btn = this.driver.find_element(By.CLASS_NAME, "yosegi-InlineWhatWhere-primaryButton")
     btn.click()
     
-  def recordWeb(self):
+  def __getDescJob(self, link):
+    getPageJobs = self.__getPage(link)
+    
+    listDesc = getPageJobs.select("#jobDescriptionText")[0]
+    
+    cleantext = re.sub(self.CLEANR, '', str(listDesc))
+    
+    print(cleantext)
+    
+    return cleantext
+    
+  def fetchData(self):
     this = self
+    print("loading...")
     try:
         this.html = WebDriverWait(this.driver, 30).until(
             EC.presence_of_element_located((By.ID, "pageContent"))
@@ -67,21 +81,25 @@ class ScarpingPortalJob:
             compName = data.select(".companyName")[0]
             companyLocation = data.select(".companyLocation")[0]
             linkJob = this.linkPortalJob + data.get("href")
+            descJob = this.__getDescJob(linkJob)
             
             jobs = {
               "title": title.text,
               "compName": compName.text,
               "companyLocation": companyLocation.text,
               "linkJob": linkJob,
+              "descJob": descJob,
             }
             
             this.listJobs.append(jobs)        
-      except:
-        print("error looping") 
+      except Exception as e:
+        print(e) 
       
       dumpListJobs = json.dumps(this.listJobs)
       writeJobs = open("jobs.json", "w")
       writeJobs.write(dumpListJobs)
+      
+      print("DONE!")
     
   def readFileJobs(self):
     readJobs = open("jobs.json", 'r')
@@ -94,6 +112,6 @@ scrapingPortalJob.typingWhat()
 scrapingPortalJob.typingWhere()
 scrapingPortalJob.clickFindJob()
 time.sleep(3)
-scrapingPortalJob.recordWeb()
-scrapingPortalJob.readFileJobs()
+scrapingPortalJob.fetchData()
+# scrapingPortalJob.readFileJobs()
 
