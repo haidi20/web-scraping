@@ -1,6 +1,8 @@
-from ast import Try
+import re
 import time
 import json
+from ast import Try
+import urllib.request
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -9,7 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from concurrent.futures.thread import ThreadPoolExecutor
 from selenium.webdriver.support import expected_conditions as EC
 
-class ScrapingWebJob:
+class ScarpingPortalJob:
   html = ""
   profile = ''
   linkPortalJob = "https://id.indeed.com"
@@ -19,6 +21,16 @@ class ScrapingWebJob:
   def __init__(self):  
     self.driver.get(self.linkPortalJob)
     time.sleep(3)
+    
+  # for bs4
+  def getLinks(url):
+    html_page = urllib.request.urlopen(url)
+    soup = BeautifulSoup(html_page, "html.parser")
+    links = []
+
+    for link in soup.findAll('a', attrs={'href': re.compile("^http://")}):
+        links.append(link.get('href'))
+    return links
     
   def typingWhat(self):
     this = self
@@ -47,8 +59,6 @@ class ScrapingWebJob:
       #   file.write(this.html.get_attribute('innerHTML'))      
       
       soup = BeautifulSoup(this.html.get_attribute('innerHTML'), "html.parser")
-      
-      detailHtml = ""
       
       try:
         if len(soup.select(".mosaic-zone")[1]) > 0:
@@ -79,11 +89,11 @@ class ScrapingWebJob:
     
     print(len(loadReadJobs))  
   
-scrapingWebJob = ScrapingWebJob()
-scrapingWebJob.typingWhat()
-scrapingWebJob.typingWhere()
-scrapingWebJob.clickFindJob()
+scrapingPortalJob = ScarpingPortalJob()
+scrapingPortalJob.typingWhat()
+scrapingPortalJob.typingWhere()
+scrapingPortalJob.clickFindJob()
 time.sleep(3)
-scrapingWebJob.recordWeb()
-scrapingWebJob.readFileJobs()
+scrapingPortalJob.recordWeb()
+scrapingPortalJob.readFileJobs()
 
